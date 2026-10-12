@@ -1,0 +1,1273 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>stream.cloud - Decentralized Audio Network</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        cloud: {
+                            50: '#f0fdfa',
+                            400: '#22d3ee',
+                            500: '#06b6d4',
+                            600: '#0891b2',
+                            dark: '#070b14',
+                            card: '#0f172a',
+                            panel: 'rgba(15, 23, 42, 0.78)',
+                            border: '#1e293b'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- FontAwesome & Google Fonts -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- JSZip Library for exporting full backend & frontend as a ZIP file -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <!-- Custom Glowing Cloud Waveform Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='cg' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' stop-color='%2306b6d4'/><stop offset='50%' stop-color='%233b82f6'/><stop offset='100%' stop-color='%238b5cf6'/></linearGradient></defs><path d='M 30 65 A 20 20 0 0 1 30 25 A 25 25 0 0 1 70 25 A 20 20 0 0 1 70 65 Z' fill='none' stroke='url(%23cg)' stroke-width='6'/><path d='M25 50 L33 40 L42 58 L52 32 L62 60 L72 44 L78 50' fill='none' stroke='%2322d3ee' stroke-width='5' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+
+    <style>
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background-color: #070b14; 
+            color: #f1f5f9;
+        }
+        code, pre { font-family: 'JetBrains Mono', monospace; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #070b14; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #334155; }
+        
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.78);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glow-cyan {
+            box-shadow: 0 0 25px -5px rgba(6, 182, 212, 0.35);
+        }
+        @keyframes spin-slow {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .animate-spin-slow { animation: spin-slow 12s linear infinite; }
+        
+        .eq-bar {
+            width: 3px;
+            background: #22d3ee;
+            border-radius: 2px;
+            animation: eqBounce 1s infinite ease-in-out alternate;
+        }
+        .eq-bar:nth-child(1) { height: 60%; animation-delay: 0.1s; }
+        .eq-bar:nth-child(2) { height: 100%; animation-delay: 0.3s; }
+        .eq-bar:nth-child(3) { height: 40%; animation-delay: 0.2s; }
+        .eq-bar:nth-child(4) { height: 80%; animation-delay: 0.4s; }
+        @keyframes eqBounce {
+            0% { height: 20%; }
+            100% { height: 100%; }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-cyan-500 selection:text-black pb-36">
+
+    <!-- Top Header Bar -->
+    <header class="sticky top-0 z-40 glass-panel border-b border-slate-800/80 px-4 lg:px-8 py-3.5 flex items-center justify-between">
+        <div class="flex items-center space-x-6">
+            <!-- Brand Logo -->
+            <div onclick="switchTab('home')" class="flex items-center space-x-3 cursor-pointer group">
+                <div class="relative w-10 h-10 rounded-2xl bg-gradient-to-tr from-cyan-500 via-blue-600 to-violet-600 p-0.5 flex items-center justify-center glow-cyan transition-transform group-hover:scale-105">
+                    <div class="w-full h-full bg-cloud-dark rounded-[14px] flex items-center justify-center">
+                        <i class="fa-solid fa-cloud-bolt text-cyan-400 text-lg"></i>
+                    </div>
+                </div>
+                <div class="flex flex-col">
+                    <span class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-cyan-400 via-teal-200 to-violet-400 bg-clip-text text-transparent">stream.cloud</span>
+                    <span class="text-[9px] uppercase tracking-widest text-slate-400 -mt-1 font-semibold">Audio Node v2.4</span>
+                </div>
+            </div>
+
+            <!-- Search Bar -->
+            <div class="hidden md:flex items-center relative w-72 lg:w-96">
+                <i class="fa-solid fa-magnifying-glass absolute left-3.5 text-slate-400 text-xs"></i>
+                <input type="text" id="searchInput" oninput="handleSearch(this.value)" placeholder="Search songs, artists..." class="w-full bg-slate-900/80 border border-slate-800 rounded-full pl-10 pr-4 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500">
+            </div>
+        </div>
+
+        <!-- Header Actions -->
+        <div class="flex items-center space-x-3">
+            <!-- Download Project ZIP Button -->
+            <button onclick="downloadProjectZip()" class="flex items-center space-x-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold px-3.5 py-2 rounded-full text-xs shadow-lg shadow-emerald-500/20 transition-all transform hover:-translate-y-0.5">
+                <i class="fa-solid fa-file-zipper"></i>
+                <span class="hidden sm:inline">Download Project ZIP</span>
+            </button>
+
+            <!-- Upload Button -->
+            <button onclick="openUploadModal()" class="flex items-center space-x-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-semibold px-4 py-2 rounded-full text-xs shadow-lg shadow-cyan-500/20 transition-all transform hover:-translate-y-0.5">
+                <i class="fa-solid fa-cloud-arrow-up"></i>
+                <span>Upload</span>
+            </button>
+
+            <!-- Auth Section -->
+            <div id="navAuthSection" class="flex items-center space-x-2">
+                <!-- Populated by JS -->
+            </div>
+        </div>
+    </header>
+
+    <!-- Main App Layout -->
+    <div class="flex-1 flex max-w-7xl w-full mx-auto px-4 lg:px-8 pt-6 gap-6">
+        <!-- Sidebar Navigation -->
+        <aside class="hidden md:block w-60 shrink-0 space-y-6">
+            <div class="glass-panel p-4 rounded-3xl space-y-1.5">
+                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 mb-2">Explore</div>
+                <button onclick="switchTab('home')" id="nav-home" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-2xl text-xs font-semibold text-cyan-400 bg-cyan-500/10 transition-colors">
+                    <i class="fa-solid fa-house w-4"></i>
+                    <span>Home Feed</span>
+                </button>
+                <button onclick="switchTab('explore')" id="nav-explore" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-2xl text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-colors">
+                    <i class="fa-solid fa-compass w-4"></i>
+                    <span>Browse Catalog</span>
+                </button>
+                <button onclick="switchTab('favorites')" id="nav-favorites" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-2xl text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-colors">
+                    <i class="fa-solid fa-heart w-4 text-pink-500"></i>
+                    <span>Liked Songs</span>
+                </button>
+                
+                <!-- Admin Panel Link (Only visible to owner iwotslegacy) -->
+                <div id="adminNavWrapper" class="hidden pt-2 border-t border-slate-800">
+                    <button onclick="switchTab('admin')" id="nav-admin" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-2xl text-xs font-bold text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 transition-colors border border-amber-500/30">
+                        <i class="fa-solid fa-shield-halved w-4"></i>
+                        <span>Owner Admin Panel</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Playlists -->
+            <div class="glass-panel p-4 rounded-3xl space-y-2">
+                <div class="flex items-center justify-between px-3 mb-1">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Playlists</span>
+                    <button onclick="openCreatePlaylistModal()" class="text-cyan-400 hover:text-cyan-300 text-xs font-semibold">
+                        <i class="fa-solid fa-plus"></i>
+                    </button>
+                </div>
+                <div id="sidebarPlaylists" class="space-y-1 max-h-52 overflow-y-auto">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 min-w-0 pb-12">
+            <!-- Mobile Search -->
+            <div class="md:hidden mb-4">
+                <div class="flex items-center relative w-full">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 text-slate-400 text-xs"></i>
+                    <input type="text" oninput="handleSearch(this.value)" placeholder="Search songs..." class="w-full bg-slate-900 border border-slate-800 rounded-full pl-10 pr-4 py-2 text-xs text-slate-200 focus:outline-none focus:border-cyan-500">
+                </div>
+            </div>
+
+            <!-- Tab: Home Feed (Starts completely blank with 0 songs) -->
+            <div id="tab-home" class="space-y-8">
+                <!-- Hero Banner -->
+                <div class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-cloud-dark via-slate-900 to-violet-950 p-6 md:p-10 border border-slate-800/80 shadow-2xl">
+                    <div class="relative z-10 max-w-xl space-y-4">
+                        <span class="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                            <i class="fa-solid fa-server text-cyan-400"></i>
+                            <span>Full-Stack Node.js Audio Server</span>
+                        </span>
+                        <h1 class="text-3xl md:text-5xl font-extrabold tracking-tight text-white">Decentralized Music Streaming</h1>
+                        <p class="text-slate-300 text-xs md:text-sm leading-relaxed">Upload audio tracks straight from your computer, create secure user accounts, curate playlists, and stream instantly with zero bloat.</p>
+                        <div class="flex items-center space-x-3 pt-2">
+                            <button onclick="openUploadModal()" class="flex items-center space-x-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-semibold px-5 py-2.5 rounded-full text-xs shadow-lg shadow-cyan-500/25 transition-transform transform hover:scale-105">
+                                <i class="fa-solid fa-cloud-arrow-up"></i>
+                                <span>Upload Audio File</span>
+                            </button>
+                            <button onclick="downloadProjectZip()" class="flex items-center space-x-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium px-5 py-2.5 rounded-full text-xs border border-slate-700">
+                                <i class="fa-solid fa-file-zipper text-emerald-400"></i>
+                                <span>Get ZIP Archive</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="absolute right-[-20px] bottom-[-40px] opacity-30 pointer-events-none">
+                        <div class="w-80 h-80 rounded-full bg-gradient-to-tr from-cyan-500 via-blue-500 to-violet-600 blur-3xl"></div>
+                    </div>
+                </div>
+
+                <!-- Songs Feed -->
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-lg font-extrabold text-white flex items-center space-x-2">
+                            <i class="fa-solid fa-music text-cyan-400"></i>
+                            <span>Community Audio Feed</span>
+                        </h2>
+                        <span id="songCountBadge" class="text-xs text-slate-400">0 Tracks</span>
+                    </div>
+
+                    <!-- Song Grid -->
+                    <div id="homeSongGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                        <!-- Populated dynamically -->
+                    </div>
+
+                    <!-- Blank State Banner -->
+                    <div id="emptyPlatformState" class="glass-panel p-10 rounded-3xl text-center space-y-4 border border-dashed border-slate-700">
+                        <div class="w-16 h-16 rounded-full bg-cyan-500/10 text-cyan-400 flex items-center justify-center mx-auto text-2xl border border-cyan-500/20">
+                            <i class="fa-solid fa-folder-open"></i>
+                        </div>
+                        <div class="max-w-md mx-auto space-y-1">
+                            <h3 class="text-lg font-bold text-white">Database is Completely Clean!</h3>
+                            <p class="text-xs text-slate-400">There are currently no songs uploaded. Sign in and upload your first audio file (.mp3 / .wav) and image thumbnail directly from your PC!</p>
+                        </div>
+                        <button onclick="openUploadModal()" class="bg-cyan-500 hover:bg-cyan-400 text-black font-bold px-5 py-2.5 rounded-full text-xs shadow-lg shadow-cyan-500/20">
+                            Upload Audio Track
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Explore -->
+            <div id="tab-explore" class="space-y-6 hidden">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h1 class="text-xl font-extrabold text-white">Browse Audio Catalog</h1>
+                        <p class="text-xs text-slate-400">Filter tracks by genre tags.</p>
+                    </div>
+                    <div id="genreFilters" class="flex items-center space-x-2 overflow-x-auto pb-2 md:pb-0">
+                        <button onclick="filterGenre('All')" class="genre-btn px-3.5 py-1.5 rounded-full text-xs font-semibold bg-cyan-500 text-black shrink-0">All</button>
+                        <button onclick="filterGenre('Electronic')" class="genre-btn px-3.5 py-1.5 rounded-full text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 shrink-0">Electronic</button>
+                        <button onclick="filterGenre('Pop')" class="genre-btn px-3.5 py-1.5 rounded-full text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 shrink-0">Pop</button>
+                        <button onclick="filterGenre('Hip-Hop')" class="genre-btn px-3.5 py-1.5 rounded-full text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 shrink-0">Hip-Hop</button>
+                        <button onclick="filterGenre('Rock')" class="genre-btn px-3.5 py-1.5 rounded-full text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 shrink-0">Rock</button>
+                        <button onclick="filterGenre('Ambient')" class="genre-btn px-3.5 py-1.5 rounded-full text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 shrink-0">Ambient</button>
+                    </div>
+                </div>
+                <div id="exploreSongGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                    <!-- Dynamic -->
+                </div>
+            </div>
+
+            <!-- Tab: Favorites -->
+            <div id="tab-favorites" class="space-y-6 hidden">
+                <div>
+                    <h1 class="text-xl font-extrabold text-white">Liked Tracks</h1>
+                    <p class="text-xs text-slate-400">Your bookmarked audio collection.</p>
+                </div>
+                <div id="favoritesList" class="space-y-2">
+                    <!-- Dynamic -->
+                </div>
+            </div>
+
+            <!-- Tab: Playlist Detail -->
+            <div id="tab-playlist-detail" class="space-y-6 hidden">
+                <div class="flex items-center space-x-4">
+                    <button onclick="switchTab('home')" class="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center text-slate-300 hover:bg-slate-700">
+                        <i class="fa-solid fa-arrow-left text-xs"></i>
+                    </button>
+                    <div>
+                        <h1 id="playlistTitle" class="text-xl font-bold text-white">Playlist</h1>
+                        <p id="playlistMeta" class="text-xs text-slate-400">0 songs</p>
+                    </div>
+                </div>
+                <div id="playlistSongsList" class="space-y-2">
+                    <!-- Dynamic -->
+                </div>
+            </div>
+
+            <!-- Tab: Song Detail -->
+            <div id="tab-song-detail" class="space-y-6 hidden">
+                <button onclick="switchTab('home')" class="flex items-center space-x-2 text-xs text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-arrow-left"></i>
+                    <span>Back to Feed</span>
+                </button>
+                <div id="songDetailContainer" class="glass-panel p-6 rounded-3xl grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Dynamic -->
+                </div>
+            </div>
+
+            <!-- Tab: Profile -->
+            <div id="tab-profile" class="space-y-6 hidden">
+                <div id="profileContainer" class="glass-panel p-6 md:p-8 rounded-3xl space-y-6">
+                    <!-- Dynamic -->
+                </div>
+            </div>
+
+            <!-- Tab: Owner Admin Panel (Exclusive to iwotslegacy) -->
+            <div id="tab-admin" class="space-y-6 hidden">
+                <div class="glass-panel p-6 rounded-3xl border border-amber-500/30 space-y-6">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-800">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-xl border border-amber-500/40">
+                                <i class="fa-solid fa-crown"></i>
+                            </div>
+                            <div>
+                                <h1 class="text-2xl font-extrabold text-white flex items-center space-x-2">
+                                    <span>Owner Control Panel</span>
+                                    <span class="text-xs px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40">iwotslegacy</span>
+                                </h1>
+                                <p class="text-xs text-slate-400">Full moderation: song deletion, track renaming, user bans, timeouts & stats.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Metrics -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                        <div class="bg-slate-900/80 p-4 rounded-2xl border border-slate-800">
+                            <div class="text-[10px] uppercase font-bold text-slate-400">Total Users</div>
+                            <div id="adminStatUsers" class="text-2xl font-extrabold text-white mt-1">0</div>
+                        </div>
+                        <div class="bg-slate-900/80 p-4 rounded-2xl border border-slate-800">
+                            <div class="text-[10px] uppercase font-bold text-slate-400">Total Tracks</div>
+                            <div id="adminStatSongs" class="text-2xl font-extrabold text-cyan-400 mt-1">0</div>
+                        </div>
+                        <div class="bg-slate-900/80 p-4 rounded-2xl border border-slate-800">
+                            <div class="text-[10px] uppercase font-bold text-slate-400">Active Bans</div>
+                            <div id="adminStatBans" class="text-2xl font-extrabold text-red-400 mt-1">0</div>
+                        </div>
+                        <div class="bg-slate-900/80 p-4 rounded-2xl border border-slate-800">
+                            <div class="text-[10px] uppercase font-bold text-slate-400">Active Timeouts</div>
+                            <div id="adminStatTimeouts" class="text-2xl font-extrabold text-amber-400 mt-1">0</div>
+                        </div>
+                    </div>
+
+                    <!-- Users Table -->
+                    <div class="space-y-3 pt-2">
+                        <h3 class="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center space-x-2">
+                            <i class="fa-solid fa-users-gear text-amber-400"></i>
+                            <span>User Accounts Moderation</span>
+                        </h3>
+                        <div class="overflow-x-auto rounded-2xl border border-slate-800">
+                            <table class="w-full text-left text-xs text-slate-300">
+                                <thead class="bg-slate-900/90 text-slate-400 uppercase text-[10px] font-bold">
+                                    <tr>
+                                        <th class="px-4 py-3">User</th>
+                                        <th class="px-4 py-3">Email</th>
+                                        <th class="px-4 py-3">Status</th>
+                                        <th class="px-4 py-3 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="adminUserTableBody" class="divide-y divide-slate-800/80 bg-slate-900/40">
+                                    <!-- Dynamic -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Songs Table -->
+                    <div class="space-y-3 pt-4">
+                        <h3 class="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center space-x-2">
+                            <i class="fa-solid fa-music text-cyan-400"></i>
+                            <span>Global Audio Catalog Moderation</span>
+                        </h3>
+                        <div class="overflow-x-auto rounded-2xl border border-slate-800">
+                            <table class="w-full text-left text-xs text-slate-300">
+                                <thead class="bg-slate-900/90 text-slate-400 uppercase text-[10px] font-bold">
+                                    <tr>
+                                        <th class="px-4 py-3">Track</th>
+                                        <th class="px-4 py-3">Uploader</th>
+                                        <th class="px-4 py-3">Plays</th>
+                                        <th class="px-4 py-3 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="adminSongTableBody" class="divide-y divide-slate-800/80 bg-slate-900/40">
+                                    <!-- Dynamic -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Persistent Audio Player Bar -->
+    <div id="audioPlayerBar" class="fixed bottom-0 left-0 right-0 z-50 glass-panel border-t border-slate-800/80 px-4 py-3 flex flex-col md:flex-row items-center justify-between gap-3 shadow-2xl">
+        <div class="flex items-center space-x-3 w-full md:w-1/4">
+            <div class="relative w-12 h-12 rounded-xl overflow-hidden shrink-0 shadow-md bg-slate-800 border border-slate-700">
+                <img id="playerThumb" src="https://placehold.co/100x100/0f172a/22d3ee?text=stream.cloud" alt="Cover" class="w-full h-full object-cover">
+                <div id="playerVinylOverlay" class="absolute inset-0 bg-black/50 hidden items-center justify-center">
+                    <div class="w-7 h-7 rounded-full border border-cyan-400 animate-spin-slow flex items-center justify-center">
+                        <div class="w-2 h-2 rounded-full bg-cyan-400"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="min-w-0 flex-1">
+                <h4 id="playerTitle" class="text-xs font-bold text-white truncate">Select a track</h4>
+                <p id="playerArtist" class="text-[11px] text-slate-400 truncate">stream.cloud</p>
+            </div>
+            <button onclick="toggleLikeCurrent()" id="playerLikeBtn" class="text-slate-400 hover:text-cyan-400 p-1">
+                <i class="fa-regular fa-heart text-base"></i>
+            </button>
+        </div>
+
+        <div class="flex flex-col items-center w-full md:w-2/5 space-y-1">
+            <div class="flex items-center space-x-5">
+                <button onclick="toggleShuffle()" id="shuffleBtn" class="text-slate-400 hover:text-cyan-400 text-xs">
+                    <i class="fa-solid fa-shuffle"></i>
+                </button>
+                <button onclick="playPrevTrack()" class="text-slate-300 hover:text-white text-sm">
+                    <i class="fa-solid fa-backward-step"></i>
+                </button>
+                <button onclick="togglePlayPause()" id="mainPlayPauseBtn" class="w-9 h-9 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white flex items-center justify-center shadow-lg shadow-cyan-500/30 transition-transform transform hover:scale-105">
+                    <i class="fa-solid fa-play ml-0.5 text-xs"></i>
+                </button>
+                <button onclick="playNextTrack()" class="text-slate-300 hover:text-white text-sm">
+                    <i class="fa-solid fa-forward-step"></i>
+                </button>
+                <button onclick="toggleRepeat()" id="repeatBtn" class="text-slate-400 hover:text-cyan-400 text-xs">
+                    <i class="fa-solid fa-repeat"></i>
+                </button>
+            </div>
+
+            <div class="flex items-center space-x-3 w-full">
+                <span id="currentTimeLabel" class="text-[10px] text-slate-400 w-8 text-right font-mono">0:00</span>
+                <input type="range" id="progressBar" value="0" min="0" max="100" step="0.1" oninput="seekTrack(this.value)" class="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400">
+                <span id="durationLabel" class="text-[10px] text-slate-400 w-8 font-mono">0:00</span>
+            </div>
+        </div>
+
+        <div class="hidden md:flex items-center justify-end space-x-4 w-1/4">
+            <div id="eqVisualizer" class="hidden items-end space-x-1 h-5 px-2">
+                <div class="eq-bar"></div>
+                <div class="eq-bar"></div>
+                <div class="eq-bar"></div>
+                <div class="eq-bar"></div>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button onclick="toggleMute()" id="muteBtn" class="text-slate-400 hover:text-white text-xs">
+                    <i class="fa-solid fa-volume-high"></i>
+                </button>
+                <input type="range" id="volumeBar" value="80" min="0" max="100" oninput="setVolume(this.value)" class="w-20 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400">
+            </div>
+        </div>
+    </div>
+
+    <!-- Upload Modal (Local PC Files) -->
+    <div id="uploadModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-lg p-6 rounded-3xl border border-slate-700 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-bold text-white flex items-center space-x-2">
+                    <i class="fa-solid fa-cloud-arrow-up text-cyan-400"></i>
+                    <span>Upload Audio Track from PC</span>
+                </h3>
+                <button onclick="closeUploadModal()" class="w-7 h-7 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xs"></i></button>
+            </div>
+            <form id="uploadForm" onsubmit="handleUploadSubmit(event)" class="space-y-3.5">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Song Title</label>
+                    <input type="text" id="upTitle" required placeholder="e.g. Neon Horizon" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-slate-200 focus:outline-none focus:border-cyan-500">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Artist Name</label>
+                        <input type="text" id="upArtist" required placeholder="Artist / Band" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-slate-200 focus:outline-none focus:border-cyan-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Genre</label>
+                        <select id="upGenre" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-cyan-500">
+                            <option value="Electronic">Electronic</option>
+                            <option value="Pop">Pop</option>
+                            <option value="Hip-Hop">Hip-Hop</option>
+                            <option value="Rock">Rock</option>
+                            <option value="Ambient">Ambient</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Select Audio File (.mp3 / .wav)</label>
+                    <input type="file" id="upAudioFile" accept="audio/*" required class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-300 file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-cyan-500 file:text-black hover:file:bg-cyan-400 cursor-pointer">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Select Cover Thumbnail Image (.png / .jpg)</label>
+                    <input type="file" id="upThumbFile" accept="image/*" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-300 file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-slate-800 file:text-slate-200 hover:file:bg-slate-700 cursor-pointer">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Description</label>
+                    <textarea id="upDesc" rows="2" placeholder="Tell listeners about this track..." class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-slate-200 focus:outline-none focus:border-cyan-500"></textarea>
+                </div>
+                <div class="flex justify-end space-x-2 pt-2">
+                    <button type="button" onclick="closeUploadModal()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700">Cancel</button>
+                    <button type="submit" class="px-5 py-2 rounded-xl text-xs font-bold bg-cyan-500 hover:bg-cyan-400 text-black shadow-lg shadow-cyan-500/20">Publish Track</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Auth Modal (Clean inputs with no preloaded user info) -->
+    <div id="authModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-md p-6 rounded-3xl border border-slate-700 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between">
+                <h3 id="authModalTitle" class="text-lg font-bold text-white">Create Account or Sign In</h3>
+                <button onclick="closeAuthModal()" class="w-7 h-7 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xs"></i></button>
+            </div>
+            <form id="authForm" onsubmit="handleAuthSubmit(event)" class="space-y-3.5">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Username</label>
+                    <input type="text" id="authUsername" required placeholder="Enter username (e.g. iwotslegacy for owner)" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-slate-200 focus:outline-none focus:border-cyan-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Email Address</label>
+                    <input type="email" id="authEmail" required placeholder="name@stream.cloud" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-slate-200 focus:outline-none focus:border-cyan-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Password</label>
+                    <input type="password" id="authPassword" required placeholder="••••••••" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-slate-200 focus:outline-none focus:border-cyan-500">
+                </div>
+                <button type="submit" id="authSubmitBtn" class="w-full py-2.5 rounded-xl text-xs font-bold bg-cyan-500 hover:bg-cyan-400 text-black shadow-lg shadow-cyan-500/20">Sign In / Register</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Song Modal -->
+    <div id="editSongModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-sm p-6 rounded-3xl border border-slate-700 space-y-4">
+            <div class="flex items-center justify-between">
+                <h3 class="text-base font-bold text-white">Rename / Edit Track</h3>
+                <button onclick="closeEditSongModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <input type="hidden" id="editSongId">
+            <div>
+                <label class="block text-xs text-slate-400 mb-1">Title</label>
+                <input type="text" id="editSongTitle" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200">
+            </div>
+            <div>
+                <label class="block text-xs text-slate-400 mb-1">Artist</label>
+                <input type="text" id="editSongArtist" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200">
+            </div>
+            <button onclick="saveSongEdit()" class="w-full py-2.5 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-black">Save Changes</button>
+        </div>
+    </div>
+
+    <!-- Timeout Modal -->
+    <div id="timeoutModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-sm p-6 rounded-3xl border border-slate-700 space-y-4">
+            <div class="flex items-center justify-between">
+                <h3 class="text-base font-bold text-white">Timeout User</h3>
+                <button onclick="closeTimeoutModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <input type="hidden" id="timeoutTargetUser">
+            <label class="block text-xs text-slate-300">Duration:</label>
+            <select id="timeoutDuration" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200">
+                <option value="300">5 Minutes</option>
+                <option value="3600">1 Hour</option>
+                <option value="86400">24 Hours</option>
+            </select>
+            <button onclick="confirmUserTimeout()" class="w-full py-2 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-black">Apply Timeout</button>
+        </div>
+    </div>
+
+    <!-- Create Playlist Modal -->
+    <div id="playlistModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-sm p-6 rounded-3xl border border-slate-700 space-y-4">
+            <div class="flex items-center justify-between">
+                <h3 class="text-base font-bold text-white">Create Playlist</h3>
+                <button onclick="closeCreatePlaylistModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <input type="text" id="newPlaylistNameInput" placeholder="Playlist Name" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200">
+            <button onclick="submitCreatePlaylist()" class="w-full py-2.5 rounded-xl text-xs font-bold bg-cyan-500 hover:bg-cyan-400 text-black">Create</button>
+        </div>
+    </div>
+
+    <!-- Add to Playlist Picker -->
+    <div id="addToPlaylistModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-sm p-6 rounded-3xl border border-slate-700 space-y-4">
+            <div class="flex items-center justify-between">
+                <h3 class="text-base font-bold text-white">Add to Playlist</h3>
+                <button onclick="closeAddToPlaylistModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="addToPlaylistList" class="space-y-2 max-h-56 overflow-y-auto">
+                <!-- Dynamic -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Box -->
+    <div id="notificationBox" class="fixed top-20 right-4 z-50 glass-panel bg-slate-900/90 border border-cyan-500/40 px-4 py-3 rounded-2xl shadow-2xl transform translate-x-96 transition-transform duration-300 flex items-center space-x-3">
+        <i class="fa-solid fa-circle-check text-cyan-400 text-base"></i>
+        <span id="notificationText" class="text-xs font-semibold text-slate-200">Notification</span>
+    </div>
+
+    <script>
+        // stream.cloud Application State (Completely blank start)
+        let registeredUsers = [];
+        let currentUser = null;
+        let songs = []; // 0 songs by default
+        let playlists = [];
+        let likedSongIds = [];
+
+        let audioElement = new Audio();
+        let currentPlayingSong = null;
+        let isPlaying = false;
+        let isShuffle = false;
+        let isRepeat = false;
+        let currentGenreFilter = "All";
+        let activeSearchQuery = "";
+        let songToAddId = null;
+
+        window.onload = function() {
+            renderAuthNav();
+            renderSidebarPlaylists();
+            renderHomeFeed();
+            renderExploreGrid();
+            renderFavorites();
+            
+            audioElement.addEventListener('timeupdate', updateProgressUI);
+            audioElement.addEventListener('ended', handleTrackEnded);
+            audioElement.volume = 0.8;
+        };
+
+        function switchTab(tabName, param = null) {
+            ['home', 'explore', 'favorites', 'playlist-detail', 'song-detail', 'profile', 'admin'].forEach(t => {
+                const el = document.getElementById(`tab-${t}`);
+                if (el) el.classList.add('hidden');
+            });
+
+            ['home', 'explore', 'favorites', 'admin'].forEach(t => {
+                const btn = document.getElementById(`nav-${t}`);
+                if (btn) {
+                    if (t === tabName) {
+                        btn.className = (t === 'admin') 
+                            ? "w-full flex items-center space-x-3 px-3 py-2.5 rounded-2xl text-xs font-bold text-amber-400 bg-amber-500/20 border border-amber-500/40"
+                            : "w-full flex items-center space-x-3 px-3 py-2.5 rounded-2xl text-xs font-semibold text-cyan-400 bg-cyan-500/10 transition-colors";
+                    } else {
+                        btn.className = (t === 'admin')
+                            ? "w-full flex items-center space-x-3 px-3 py-2.5 rounded-2xl text-xs font-bold text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 transition-colors border border-amber-500/30"
+                            : "w-full flex items-center space-x-3 px-3 py-2.5 rounded-2xl text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-colors";
+                    }
+                }
+            });
+
+            const target = document.getElementById(`tab-${tabName}`);
+            if (target) target.classList.remove('hidden');
+
+            if (tabName === 'playlist-detail' && param) renderPlaylistDetail(param);
+            if (tabName === 'song-detail' && param) renderSongDetail(param);
+            if (tabName === 'profile') renderProfileView();
+            if (tabName === 'admin') renderAdminPanel();
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function showNotification(msg) {
+            const box = document.getElementById('notificationBox');
+            document.getElementById('notificationText').innerText = msg;
+            box.classList.remove('translate-x-96');
+            setTimeout(() => box.classList.add('translate-x-96'), 3000);
+        }
+
+        function renderAuthNav() {
+            const container = document.getElementById('navAuthSection');
+            const adminWrapper = document.getElementById('adminNavWrapper');
+
+            if (currentUser) {
+                const isOwner = (currentUser.username === 'iwotslegacy');
+                if (isOwner) adminWrapper.classList.remove('hidden');
+                else adminWrapper.classList.add('hidden');
+
+                container.innerHTML = `
+                    <button onclick="switchTab('profile')" class="flex items-center space-x-2 pl-2 pr-3 py-1.5 rounded-full bg-slate-900 border border-slate-700 hover:border-cyan-500 transition-colors">
+                        <img src="${currentUser.avatar}" class="w-6 h-6 rounded-full object-cover">
+                        <span class="text-xs font-bold text-slate-200">${currentUser.username}</span>
+                        ${isOwner ? '<span class="text-[9px] bg-amber-500/20 text-amber-300 font-extrabold px-1.5 py-0.5 rounded border border-amber-500/30">OWNER</span>' : ''}
+                    </button>
+                    <button onclick="logout()" title="Log Out" class="w-8 h-8 rounded-full bg-slate-900 hover:bg-red-500/20 hover:text-red-400 text-slate-400 flex items-center justify-center border border-slate-800 transition-colors">
+                        <i class="fa-solid fa-right-from-bracket text-xs"></i>
+                    </button>
+                `;
+            } else {
+                adminWrapper.classList.add('hidden');
+                container.innerHTML = `
+                    <button onclick="openAuthModal()" class="px-3.5 py-1.5 rounded-full text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700">Sign In / Up</button>
+                `;
+            }
+        }
+
+        function renderHomeFeed() {
+            const grid = document.getElementById('homeSongGrid');
+            const emptyBanner = document.getElementById('emptyPlatformState');
+            const countBadge = document.getElementById('songCountBadge');
+
+            countBadge.innerText = `${songs.length} Tracks`;
+
+            if (songs.length === 0) {
+                grid.innerHTML = '';
+                emptyBanner.classList.remove('hidden');
+            } else {
+                emptyBanner.classList.add('hidden');
+                grid.innerHTML = songs.map(s => createSongCardHtml(s)).join('');
+            }
+        }
+
+        function createSongCardHtml(song) {
+            const isLiked = likedSongIds.includes(song.id);
+            const isOwner = currentUser && currentUser.username === 'iwotslegacy';
+
+            return `
+                <div class="glass-panel p-3 rounded-2xl group hover:border-cyan-500/40 transition-all flex flex-col justify-between space-y-2.5">
+                    <div class="relative aspect-square rounded-xl overflow-hidden bg-slate-900 cursor-pointer" onclick="switchTab('song-detail', '${song.id}')">
+                        <img src="${song.thumb}" alt="${song.title}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onerror="this.src='https://placehold.co/300x300/0f172a/22d3ee?text=stream.cloud'">
+                        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <button onclick="event.stopPropagation(); playSong('${song.id}')" class="w-10 h-10 rounded-full bg-cyan-500 text-black flex items-center justify-center shadow-xl transform scale-90 group-hover:scale-100 transition-transform font-bold">
+                                <i class="fa-solid fa-play ml-0.5"></i>
+                            </button>
+                        </div>
+                        <span class="absolute top-2 left-2 px-2 py-0.5 rounded-md text-[9px] font-bold bg-black/70 backdrop-blur-md text-cyan-300">${song.genre}</span>
+                    </div>
+                    <div class="space-y-0.5">
+                        <h4 onclick="switchTab('song-detail', '${song.id}')" class="text-xs font-bold text-white truncate cursor-pointer hover:text-cyan-400">${song.title}</h4>
+                        <p class="text-[11px] text-slate-400 truncate">${song.artist}</p>
+                    </div>
+                    <div class="flex items-center justify-between pt-1 border-t border-slate-800/80 text-[11px] text-slate-400">
+                        <span><i class="fa-solid fa-headphones text-[10px] mr-1 text-slate-500"></i>${song.plays}</span>
+                        <div class="flex items-center space-x-2">
+                            <button onclick="toggleLike('${song.id}')" class="${isLiked ? 'text-cyan-400' : 'text-slate-400 hover:text-cyan-400'}">
+                                <i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i>
+                            </button>
+                            <button onclick="openAddToPlaylistModal('${song.id}')" title="Add to playlist" class="hover:text-white">
+                                <i class="fa-solid fa-plus"></i>
+                            </button>
+                            ${isOwner ? `<button onclick="openEditSongModal('${song.id}')" title="Edit" class="text-amber-400 hover:text-amber-300"><i class="fa-solid fa-pen"></i></button>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function createSongRowHtml(song) {
+            const isLiked = likedSongIds.includes(song.id);
+            return `
+                <div class="glass-panel p-2.5 rounded-2xl flex items-center justify-between group hover:border-cyan-500/30 transition-colors">
+                    <div class="flex items-center space-x-3 min-w-0">
+                        <div class="relative w-10 h-10 rounded-xl overflow-hidden bg-slate-900 shrink-0 cursor-pointer" onclick="switchTab('song-detail', '${song.id}')">
+                            <img src="${song.thumb}" alt="${song.title}" class="w-full h-full object-cover">
+                        </div>
+                        <div class="min-w-0">
+                            <h4 onclick="switchTab('song-detail', '${song.id}')" class="text-xs font-bold text-white truncate cursor-pointer hover:text-cyan-400">${song.title}</h4>
+                            <p class="text-[10px] text-slate-400 truncate">${song.artist}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <button onclick="toggleLike('${song.id}')" class="${isLiked ? 'text-cyan-400' : 'text-slate-400'} text-xs"><i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i></button>
+                        <button onclick="playSong('${song.id}')" class="w-8 h-8 rounded-full bg-slate-800 group-hover:bg-cyan-500 group-hover:text-black text-slate-300 flex items-center justify-center">
+                            <i class="fa-solid fa-play text-[10px] ml-0.5"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderExploreGrid() {
+            const grid = document.getElementById('exploreSongGrid');
+            let filtered = songs;
+            if (currentGenreFilter !== 'All') filtered = filtered.filter(s => s.genre === currentGenreFilter);
+            if (activeSearchQuery.trim() !== '') {
+                const q = activeSearchQuery.toLowerCase();
+                filtered = filtered.filter(s => s.title.toLowerCase().includes(q) || s.artist.toLowerCase().includes(q));
+            }
+            if (filtered.length === 0) {
+                grid.innerHTML = `<div class="col-span-full py-12 text-center text-slate-500 text-xs">No matching tracks found.</div>`;
+                return;
+            }
+            grid.innerHTML = filtered.map(song => createSongCardHtml(song)).join('');
+        }
+
+        function filterGenre(genre) {
+            currentGenreFilter = genre;
+            document.querySelectorAll('.genre-btn').forEach(btn => {
+                btn.className = (btn.innerText === genre) 
+                    ? "genre-btn px-3.5 py-1.5 rounded-full text-xs font-semibold bg-cyan-500 text-black shrink-0"
+                    : "genre-btn px-3.5 py-1.5 rounded-full text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 shrink-0";
+            });
+            renderExploreGrid();
+            switchTab('explore');
+        }
+
+        function handleSearch(query) {
+            activeSearchQuery = query;
+            renderExploreGrid();
+            if (query.trim() !== '') switchTab('explore');
+        }
+
+        function renderFavorites() {
+            const list = document.getElementById('favoritesList');
+            const likedSongs = songs.filter(s => likedSongIds.includes(s.id));
+            if (likedSongs.length === 0) {
+                list.innerHTML = `<div class="py-12 text-center text-slate-500 text-xs">No liked tracks yet.</div>`;
+                return;
+            }
+            list.innerHTML = likedSongs.map(song => createSongRowHtml(song)).join('');
+        }
+
+        function playSong(songId) {
+            const song = songs.find(s => s.id === songId);
+            if (!song) return;
+            currentPlayingSong = song;
+            audioElement.src = song.audioUrl;
+            audioElement.play().then(() => {
+                isPlaying = true;
+                updatePlayerUI();
+            }).catch(() => showNotification("Audio playback error."));
+            song.plays += 1;
+            renderHomeFeed();
+        }
+
+        function togglePlayPause() {
+            if (!currentPlayingSong && songs.length > 0) { playSong(songs[0].id); return; }
+            if (!currentPlayingSong) return;
+            if (isPlaying) { audioElement.pause(); isPlaying = false; }
+            else { audioElement.play(); isPlaying = true; }
+            updatePlayerUI();
+        }
+
+        function updatePlayerUI() {
+            const playBtn = document.getElementById('mainPlayPauseBtn');
+            const vinylOverlay = document.getElementById('playerVinylOverlay');
+            const eq = document.getElementById('eqVisualizer');
+            if (isPlaying) {
+                playBtn.innerHTML = `<i class="fa-solid fa-pause text-xs"></i>`;
+                vinylOverlay.classList.remove('hidden'); vinylOverlay.classList.add('flex');
+                eq.classList.remove('hidden'); eq.classList.add('flex');
+            } else {
+                playBtn.innerHTML = `<i class="fa-solid fa-play ml-0.5 text-xs"></i>`;
+                vinylOverlay.classList.remove('flex'); vinylOverlay.classList.add('hidden');
+                eq.classList.remove('flex'); eq.classList.add('hidden');
+            }
+            if (currentPlayingSong) {
+                document.getElementById('playerTitle').innerText = currentPlayingSong.title;
+                document.getElementById('playerArtist').innerText = currentPlayingSong.artist;
+                document.getElementById('playerThumb').src = currentPlayingSong.thumb;
+            }
+        }
+
+        function updateProgressUI() {
+            if (isNaN(audioElement.duration)) return;
+            const progress = (audioElement.currentTime / audioElement.duration) * 100;
+            document.getElementById('progressBar').value = progress;
+            document.getElementById('currentTimeLabel').innerText = formatTime(audioElement.currentTime);
+            document.getElementById('durationLabel').innerText = formatTime(audioElement.duration);
+        }
+
+        function seekTrack(val) {
+            if (isNaN(audioElement.duration)) return;
+            audioElement.currentTime = (val / 100) * audioElement.duration;
+        }
+
+        function setVolume(val) { audioElement.volume = val / 100; }
+        function toggleMute() {
+            audioElement.muted = !audioElement.muted;
+            document.getElementById('muteBtn').innerHTML = audioElement.muted ? `<i class="fa-solid fa-volume-xmark text-red-400"></i>` : `<i class="fa-solid fa-volume-high"></i>`;
+        }
+        function toggleShuffle() { isShuffle = !isShuffle; showNotification(isShuffle ? "Shuffle On" : "Shuffle Off"); }
+        function toggleRepeat() { isRepeat = !isRepeat; showNotification(isRepeat ? "Repeat On" : "Repeat Off"); }
+
+        function playNextTrack() {
+            if (!currentPlayingSong || songs.length === 0) return;
+            const idx = songs.findIndex(s => s.id === currentPlayingSong.id);
+            playSong(songs[(idx + 1) % songs.length].id);
+        }
+
+        function playPrevTrack() {
+            if (!currentPlayingSong || songs.length === 0) return;
+            const idx = songs.findIndex(s => s.id === currentPlayingSong.id);
+            playSong(songs[(idx - 1 + songs.length) % songs.length].id);
+        }
+
+        function handleTrackEnded() {
+            if (isRepeat && currentPlayingSong) { audioElement.currentTime = 0; audioElement.play(); }
+            else { playNextTrack(); }
+        }
+
+        function toggleLike(songId) {
+            if (likedSongIds.includes(songId)) { likedSongIds = likedSongIds.filter(id => id !== songId); showNotification("Removed from Liked"); }
+            else { likedSongIds.push(songId); showNotification("Added to Liked"); }
+            renderHomeFeed(); renderExploreGrid(); renderFavorites();
+        }
+
+        function toggleLikeCurrent() { if (currentPlayingSong) toggleLike(currentPlayingSong.id); }
+
+        function openUploadModal() {
+            if (!currentUser) { showNotification("Please sign in first."); openAuthModal(); return; }
+            if (currentUser.isBanned) { showNotification("Your account is banned."); return; }
+            if (currentUser.timeoutUntil && Date.now() < currentUser.timeoutUntil) { showNotification("Your account is on timeout."); return; }
+            document.getElementById('uploadModal').classList.remove('hidden');
+        }
+
+        function closeUploadModal() {
+            document.getElementById('uploadModal').classList.add('hidden');
+            document.getElementById('uploadForm').reset();
+        }
+
+        function handleUploadSubmit(e) {
+            e.preventDefault();
+            const title = document.getElementById('upTitle').value;
+            const artist = document.getElementById('upArtist').value;
+            const genre = document.getElementById('upGenre').value;
+            const desc = document.getElementById('upDesc').value;
+
+            const audioFileInput = document.getElementById('upAudioFile');
+            const thumbFileInput = document.getElementById('upThumbFile');
+
+            const audioFile = audioFileInput.files[0];
+            const thumbFile = thumbFileInput.files[0];
+
+            if (!audioFile) { showNotification("Please select an audio file."); return; }
+
+            const audioUrl = URL.createObjectURL(audioFile);
+            let thumbUrl = "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&auto=format&fit=crop&q=80";
+
+            if (thumbFile) {
+                thumbUrl = URL.createObjectURL(thumbFile);
+            }
+
+            const newSong = {
+                id: `song-${Date.now()}`,
+                title,
+                artist,
+                uploader: currentUser.username,
+                genre,
+                audioUrl,
+                thumb: thumbUrl,
+                desc,
+                plays: 0
+            };
+
+            songs.unshift(newSong);
+            closeUploadModal();
+            renderHomeFeed();
+            renderExploreGrid();
+            showNotification(`Track "${title}" successfully uploaded!`);
+            switchTab('home');
+        }
+
+        function openAuthModal() { document.getElementById('authModal').classList.remove('hidden'); }
+        function closeAuthModal() { document.getElementById('authModal').classList.add('hidden'); document.getElementById('authForm').reset(); }
+
+        function handleAuthSubmit(e) {
+            e.preventDefault();
+            const username = document.getElementById('authUsername').value.trim();
+            const email = document.getElementById('authEmail').value.trim();
+
+            let user = registeredUsers.find(u => u.username === username);
+            if (!user) {
+                user = {
+                    username,
+                    email,
+                    bio: "Stream.cloud audio enthusiast",
+                    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80",
+                    isBanned: false,
+                    timeoutUntil: null
+                };
+                registeredUsers.push(user);
+            }
+
+            if (user.isBanned) { showNotification("This account is banned."); return; }
+
+            currentUser = user;
+            closeAuthModal();
+            renderAuthNav();
+            showNotification(`Logged in as ${user.username}`);
+            if (user.username === 'iwotslegacy') switchTab('admin');
+        }
+
+        function logout() { currentUser = null; renderAuthNav(); showNotification("Logged out."); switchTab('home'); }
+
+        function renderAdminPanel() {
+            if (!currentUser || currentUser.username !== 'iwotslegacy') { showNotification("Owner access required."); switchTab('home'); return; }
+
+            document.getElementById('adminStatUsers').innerText = registeredUsers.length;
+            document.getElementById('adminStatSongs').innerText = songs.length;
+            document.getElementById('adminStatBans').innerText = registeredUsers.filter(u => u.isBanned).length;
+            document.getElementById('adminStatTimeouts').innerText = registeredUsers.filter(u => u.timeoutUntil && Date.now() < u.timeoutUntil).length;
+
+            const userBody = document.getElementById('adminUserTableBody');
+            userBody.innerHTML = registeredUsers.map(u => {
+                const isTimedOut = u.timeoutUntil && Date.now() < u.timeoutUntil;
+                const isOwner = (u.username === 'iwotslegacy');
+                return `
+                    <tr>
+                        <td class="px-4 py-3 font-bold text-white flex items-center space-x-2">
+                            <img src="${u.avatar}" class="w-6 h-6 rounded-full object-cover">
+                            <span>${u.username}</span>
+                        </td>
+                        <td class="px-4 py-3 text-slate-400">${u.email}</td>
+                        <td class="px-4 py-3">
+                            ${u.isBanned ? '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-500/20 text-red-400">BANNED</span>' : ''}
+                            ${isTimedOut ? '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300">TIMEOUT</span>' : ''}
+                            ${!u.isBanned && !isTimedOut ? '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300">ACTIVE</span>' : ''}
+                        </td>
+                        <td class="px-4 py-3 text-right space-x-2">
+                            ${!isOwner ? `
+                                <button onclick="openTimeoutModal('${u.username}')" class="px-2 py-1 rounded bg-amber-500/20 text-amber-300 font-bold">Timeout</button>
+                                <button onclick="toggleBanUser('${u.username}')" class="px-2 py-1 rounded ${u.isBanned ? 'bg-emerald-500/20 text-emerald-300' : 'bg-red-500/20 text-red-400'} font-bold">
+                                    ${u.isBanned ? 'Unban' : 'Ban'}
+                                </button>
+                            ` : '<span class="text-slate-500 text-[10px]">Protected</span>'}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            const songBody = document.getElementById('adminSongTableBody');
+            if (songs.length === 0) {
+                songBody.innerHTML = `<tr><td colspan="4" class="px-4 py-6 text-center text-slate-500">No tracks exist.</td></tr>`;
+            } else {
+                songBody.innerHTML = songs.map(s => `
+                    <tr>
+                        <td class="px-4 py-3 font-bold text-white flex items-center space-x-2">
+                            <img src="${s.thumb}" class="w-6 h-6 rounded-md object-cover">
+                            <span>${s.title}</span> <span class="text-slate-400 font-normal">by ${s.artist}</span>
+                        </td>
+                        <td class="px-4 py-3 text-cyan-400">${s.uploader}</td>
+                        <td class="px-4 py-3 text-slate-400">${s.plays}</td>
+                        <td class="px-4 py-3 text-right space-x-2">
+                            <button onclick="openEditSongModal('${s.id}')" class="px-2 py-1 rounded bg-amber-500/20 text-amber-300 font-bold">Rename</button>
+                            <button onclick="adminDeleteSong('${s.id}')" class="px-2 py-1 rounded bg-red-500/20 text-red-400 font-bold">Delete</button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+        }
+
+        function toggleBanUser(username) {
+            const u = registeredUsers.find(x => x.username === username);
+            if (u) { u.isBanned = !u.isBanned; showNotification(`User ${username} ${u.isBanned ? 'Banned' : 'Unbanned'}`); renderAdminPanel(); }
+        }
+
+        function openTimeoutModal(username) {
+            document.getElementById('timeoutTargetUser').value = username;
+            document.getElementById('timeoutModal').classList.remove('hidden');
+        }
+        function closeTimeoutModal() { document.getElementById('timeoutModal').classList.add('hidden'); }
+        function confirmUserTimeout() {
+            const username = document.getElementById('timeoutTargetUser').value;
+            const duration = parseInt(document.getElementById('timeoutDuration').value);
+            const u = registeredUsers.find(x => x.username === username);
+            if (u) { u.timeoutUntil = Date.now() + (duration * 1000); showNotification(`User ${username} timed out.`); }
+            closeTimeoutModal(); renderAdminPanel();
+        }
+
+        function adminDeleteSong(id) {
+            songs = songs.filter(s => s.id !== id);
+            showNotification("Track deleted by owner.");
+            renderAdminPanel(); renderHomeFeed();
+        }
+
+        function openEditSongModal(id) {
+            const s = songs.find(x => x.id === id);
+            if (!s) return;
+            document.getElementById('editSongId').value = s.id;
+            document.getElementById('editSongTitle').value = s.title;
+            document.getElementById('editSongArtist').value = s.artist;
+            document.getElementById('editSongModal').classList.remove('hidden');
+        }
+        function closeEditSongModal() { document.getElementById('editSongModal').classList.add('hidden'); }
+        function saveSongEdit() {
+            const id = document.getElementById('editSongId').value;
+            const s = songs.find(x => x.id === id);
+            if (s) {
+                s.title = document.getElementById('editSongTitle').value;
+                s.artist = document.getElementById('editSongArtist').value;
+                showNotification("Track updated.");
+            }
+            closeEditSongModal(); renderAdminPanel(); renderHomeFeed();
+        }
+
+        function openCreatePlaylistModal() { document.getElementById('playlistModal').classList.remove('hidden'); }
+        function closeCreatePlaylistModal() { document.getElementById('playlistModal').classList.add('hidden'); document.getElementById('newPlaylistNameInput').value = ''; }
+        function submitCreatePlaylist() {
+            const name = document.getElementById('newPlaylistNameInput').value.trim();
+            if (!name) return;
+            playlists.push({ id: `pl-${Date.now()}`, name, songIds: [] });
+            closeCreatePlaylistModal(); renderSidebarPlaylists(); showNotification(`Playlist "${name}" created.`);
+        }
+
+        function renderSidebarPlaylists() {
+            const container = document.getElementById('sidebarPlaylists');
+            container.innerHTML = playlists.map(pl => `
+                <button onclick="switchTab('playlist-detail', '${pl.id}')" class="w-full text-left px-3 py-1.5 rounded-xl text-xs text-slate-400 hover:text-white hover:bg-slate-800/50 flex items-center space-x-2 truncate">
+                    <i class="fa-solid fa-list-music text-cyan-400"></i>
+                    <span class="truncate">${pl.name}</span>
+                </button>
+            `).join('');
+        }
+
+        function openAddToPlaylistModal(songId) {
+            songToAddId = songId;
+            const container = document.getElementById('addToPlaylistList');
+            if (playlists.length === 0) { container.innerHTML = `<p class="text-xs text-slate-400">No playlists created yet.</p>`; }
+            else {
+                container.innerHTML = playlists.map(pl => `
+                    <button onclick="confirmAddToPlaylist('${pl.id}')" class="w-full px-3 py-2 rounded-xl text-xs font-bold bg-slate-900 hover:bg-slate-800 text-slate-200 flex items-center justify-between">
+                        <span>${pl.name}</span> <i class="fa-solid fa-plus text-cyan-400"></i>
+                    </button>
+                `).join('');
+            }
+            document.getElementById('addToPlaylistModal').classList.remove('hidden');
+        }
+        function closeAddToPlaylistModal() { document.getElementById('addToPlaylistModal').classList.add('hidden'); songToAddId = null; }
+        function confirmAddToPlaylist(plId) {
+            const pl = playlists.find(p => p.id === plId);
+            if (pl && songToAddId && !pl.songIds.includes(songToAddId)) {
+                pl.songIds.push(songToAddId);
+                showNotification(`Added to "${pl.name}"`);
+            }
+            closeAddToPlaylistModal();
+        }
+
+        function renderPlaylistDetail(plId) {
+            const pl = playlists.find(p => p.id === plId);
+            if (!pl) return;
+            document.getElementById('playlistTitle').innerText = pl.name;
+            document.getElementById('playlistMeta').innerText = `${pl.songIds.length} tracks`;
+            const container = document.getElementById('playlistSongsList');
+            const plSongs = songs.filter(s => pl.songIds.includes(s.id));
+            container.innerHTML = plSongs.length === 0 ? `<div class="py-12 text-center text-slate-500 text-xs">Playlist is empty.</div>` : plSongs.map(s => createSongRowHtml(s)).join('');
+        }
+
+        function renderSongDetail(songId) {
+            const s = songs.find(x => x.id === songId);
+            if (!s) return;
+            document.getElementById('songDetailContainer').innerHTML = `
+                <div class="aspect-square rounded-2xl overflow-hidden bg-slate-900 shadow-xl">
+                    <img src="${s.thumb}" class="w-full h-full object-cover">
+                </div>
+                <div class="md:col-span-2 space-y-4">
+                    <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-cyan-500/20 text-cyan-300">${s.genre}</span>
+                    <h1 class="text-2xl font-extrabold text-white">${s.title}</h1>
+                    <p class="text-sm text-cyan-400 font-bold">${s.artist}</p>
+                    <p class="text-xs text-slate-300">${s.desc || 'No description.'}</p>
+                    <button onclick="playSong('${s.id}')" class="bg-cyan-500 hover:bg-cyan-400 text-black px-5 py-2 rounded-full text-xs font-bold shadow-lg">Play Track</button>
+                </div>
+            `;
+        }
+
+        function renderProfileView() {
+            const container = document.getElementById('profileContainer');
+            if (!currentUser) { container.innerHTML = `<div class="text-center py-12 text-slate-400 text-xs">Please sign in.</div>`; return; }
+            container.innerHTML = `
+                <div class="flex items-center space-x-4">
+                    <img src="${currentUser.avatar}" class="w-20 h-20 rounded-full object-cover border-2 border-cyan-500/40">
+                    <div>
+                        <h1 class="text-xl font-extrabold text-white">${currentUser.username}</h1>
+                        <p class="text-xs text-cyan-400">${currentUser.email}</p>
+                        <p class="text-xs text-slate-300 mt-1">${currentUser.bio}</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        // JSZip Generator Function for Download
+        async function downloadProjectZip() {
+            showNotification("Generating stream.cloud project ZIP archive...");
+            const zip = new JSZip();
+
+            // package.json
+            zip.file("package.json", JSON.stringify({
+                name: "stream.cloud",
+                version: "2.4.0",
+                description: "Decentralized audio streaming portal with Express & Multer",
+                main: "server.js",
+                scripts: { "start": "node server.js" },
+                dependencies: {
+                    "express": "^4.19.2",
+                    "cors": "^2.8.5",
+                    "multer": "^1.4.5-lts.1",
+                    "bcryptjs": "^2.4.3",
+                    "jsonwebtoken": "^9.0.2"
+                }
+            }, null, 2));
+
+            // server.js
+            zip.file("server.js", `const express = require('express');
+const cors = require('cors');
+const path = require('path');
+const multer = require('multer');
+
+const app = express();
+const PORT = process.env.PORT || 5000;
+
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use(express.static(path.join(__dirname, 'public')));
+
+// In-Memory Database Simulation for Node.js
+let songs = [];
+let users = [];
+
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => cb(null, 'uploads/'),
+    filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
+});
+const upload = multer({ storage: storage });
+
+app.get('/api/songs', (req, res) => res.json({ success: true, songs }));
+
+app.post('/api/songs/upload', upload.fields([{ name: 'audio' }, { name: 'thumb' }]), (req, res) => {
+    const { title, artist, genre, desc, uploader } = req.body;
+    const audioUrl = req.files['audio'] ? \`/uploads/\${req.files['audio'][0].filename}\` : '';
+    const thumbUrl = req.files['thumb'] ? \`/uploads/\${req.files['thumb'][0].filename}\` : 'https://placehold.co/300x300';
+    
+    const newSong = { id: \`song-\${Date.now()}\`, title, artist, genre, desc, uploader, audioUrl, thumb: thumbUrl, plays: 0 };
+    songs.unshift(newSong);
+    res.json({ success: true, song: newSong });
+});
+
+app.post('/api/auth/login', (req, res) => {
+    const { username, email } = req.body;
+    let user = users.find(u => u.username === username);
+    if (!user) {
+        user = { username, email, isBanned: false };
+        users.push(user);
+    }
+    if (user.isBanned) return res.status(403).json({ error: 'Banned' });
+    res.json({ success: true, user, token: 'jwt-mock-token' });
+});
+
+app.listen(PORT, () => console.log(\`stream.cloud server running on port \${PORT}\`));
+`);
+
+            // README.md
+            zip.file("README.md", `# stream.cloud
+
+### Setup Instructions
+1. Run \`npm install\` to install dependencies.
+2. Create an \`uploads\` directory.
+3. Run \`npm start\` or \`node server.js\` to launch the application.
+`);
+
+            // Generate blob and trigger download
+            const content = await zip.generateAsync({ type: "blob" });
+            const url = URL.createObjectURL(content);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "stream.cloud-fullstack.zip";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showNotification("Download complete! Extract and run npm install.");
+        }
+
+        function formatTime(sec) {
+            if (isNaN(sec)) return "0:00";
+            const m = Math.floor(sec / 60);
+            const s = Math.floor(sec % 60);
+            return `${m}:${s < 10 ? '0' : ''}${s}`;
+        }
+    </script>
+</body>
+</html>
